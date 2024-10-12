@@ -3,13 +3,14 @@ import { Construct } from 'constructs';
 import { ApplicationLoadBalancedFargateService } from "aws-cdk-lib/aws-ecs-patterns";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
+import * as ecr from "aws-cdk-lib/aws-ecr";
 import * as apigw2 from "aws-cdk-lib/aws-apigatewayv2";
 import { HttpAlbIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
 
 export const PREFIX = "my-app";
 
 export class GuessWhatStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, ecrRepository: ecr.Repository, props?: cdk.StackProps) {
     super(scope, id, props);
 
     // create vpc
@@ -37,7 +38,7 @@ export class GuessWhatStack extends cdk.Stack {
       cpu: 256,
       // create task definition
       taskImageOptions: {
-        image: ecs.ContainerImage.fromRegistry("public.ecr.aws/ecs-sample-image/amazon-ecs-sample:latest"),
+        image: ecs.ContainerImage.fromEcrRepository(ecrRepository),
         // environment in a container
         environment: {
           ENV_VAR_1: "value1",
@@ -69,5 +70,16 @@ export class GuessWhatStack extends cdk.Stack {
       integration: new HttpAlbIntegration("AlbIntegration", service.listener)
     })
 
+  }
+}
+
+export class RepositoryStack extends cdk.Stack {
+  repository: ecr.Repository;
+
+  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+    super(scope, id, props);
+
+    const repository = new ecr.Repository(this, "Repository", { repositoryName: `${PREFIX}-repository` });
+    this.repository = repository;
   }
 }
